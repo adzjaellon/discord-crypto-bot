@@ -5,11 +5,18 @@ import binascii
 import base58
 import ecdsa
 import discord
+import json
+import decimal
 from decouple import config
+from requests import Session
+
 
 token = config('token')
-
 client = discord.Client()
+headers = {
+    'Accepts': 'application/json',
+    'X-CMC_PRO_API_KEY': config('api_key'),
+}
 
 
 @client.event
@@ -18,8 +25,34 @@ async def on_message(message):
         return
 
     if message.content.startswith('$random'):
-        msg = random()
+        content = message.content.split(' ')
+        if len(content) > 1 and content[1].isdigit() and int(content[1]) > 0:
+            msg = random(int(content[1]))
+        else:
+            msg = random()
         await message.channel.send(msg)
+
+    if message.content.startswith('$p'):
+        msg = message.content.split(' ')
+        url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+
+        parameters = {
+            'symbol': msg[1]
+        }
+
+        session = Session()
+        session.headers.update(headers)
+
+        try:
+            response = session.get(url, params=parameters)
+            data = json.loads(response.text)
+            info = data['data'][msg[1].upper()]
+            price = (round(info['quote']['USD']['price'], 2) if info['quote']['USD']['price'] >= 1 else decimal.Decimal(info['quote']['USD']['price']))
+            await message.channel.send(f'{msg[1]} {price}$\n'
+                                       f"1h change: {info['quote']['USD']['percent_change_1h']}%\n"
+                                       f"24h change: {info['quote']['USD']['percent_change_24h']}%")
+        except Exception as e:
+            await message.channel.send(f'error: {e}')
 
 
 def ripemd160(x):
@@ -28,10 +61,10 @@ def ripemd160(x):
     return d
 
 
-def random():
+def random(number=10):
     wallets = {}
 
-    for i in range(10):
+    for i in range(number):
         priv_key = os.urandom(32)
         fullkey = '80' + binascii.hexlify(priv_key).decode()
         sha256a = hashlib.sha256(binascii.unhexlify(fullkey)).hexdigest()
