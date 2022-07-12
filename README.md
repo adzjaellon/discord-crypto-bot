@@ -2,7 +2,7 @@
 * $p (token) - displays actual crypto price
 
 ![](https://i.imgur.com/Ydn29I7.png)
-* $random (number) - generates given number of private keys and looks if it contains any coins
+* $random (number) - generates given number of private keys and looks if associated wallet address contains any coins
 
 ![](https://i.imgur.com/jLl4JeJ.png)
 
